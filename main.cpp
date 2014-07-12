@@ -1,4 +1,6 @@
 #include <iostream>
+#include <fstream>
+#include <ios>
 
 using namespace std;
 const int DIRECTIONS = 8;
@@ -54,27 +56,29 @@ Node::Node( Node * n, Direction dir, int id ) : mID(id)
 
 }
 
-class Graf
+class Graph
 {
 public:
-	Graf();
-	~Graf();
-	void 	buildGraf();
-	void 	showData() const;
-	void	bindUp( Node * first, Node * second, Direction dir );
-	static int getOpposite( Direction dir );
+				Graph();
+				~Graph();
+		void	bindUp( Node * first, Node * second, Direction dir );
+		void 	buildGraph();
+static	int 	getOpposite( Direction dir );
+		bool 	loadGraph( const string& filename );
+		void 	showData() const;
+		bool	saveGraph( const string& filename ) const;
 
 private:
-	Node * mRoot;
-	Node * mTable[BOARD_SIZE][BOARD_SIZE];
+		Node * 	mRoot;
+		Node * 	mTable[BOARD_SIZE][BOARD_SIZE];
 };
 
-Graf::Graf()
+Graph::Graph()
 {
-	buildGraf();
+	buildGraph();
 }
 
-Graf::~Graf()
+Graph::~Graph()
 {
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
@@ -85,7 +89,7 @@ Graf::~Graf()
 	}
 }
 
-void 	Graf::buildGraf()
+void 	Graph::buildGraph()
 {
 	for (int i = 0; i < BOARD_SIZE; ++i)
 	{
@@ -111,7 +115,7 @@ void 	Graf::buildGraf()
 	mRoot = mTable[0][0];
 }
 
-void 	Graf::showData() const
+void 	Graph::showData() const
 {
 	Node * rowIt, * colIt;
 	rowIt = colIt = mRoot;
@@ -129,21 +133,76 @@ void 	Graf::showData() const
 	}
 }
 
-void	Graf::bindUp( Node * first, Node * second, Direction dir )
+void	Graph::bindUp( Node * first, Node * second, Direction dir )
 {
 	first->mExp[(int)dir] = second;
 	second->mExp[getOpposite(dir)] = first;
 }
 
-int Graf::getOpposite( Direction dir )
+int Graph::getOpposite( Direction dir )
 {
 	return ( (int)dir + DIRECTIONS/2 ) % DIRECTIONS;
 }
 
-
-int main(int argc, char const *argv[])
+bool Graph::saveGraph( const string& filename ) const
 {
-	Graf g;
-	g.showData();
+	ofstream	fout;
+	fout.open( filename , ios::binary | ios::out );
+	if ( fout.fail() )
+	{
+		cerr << "Cannot to make the file \"" << filename << "\"" << endl;
+		return false;
+	}
+
+	for (int i = 0; i < BOARD_SIZE; ++i)
+	{	
+		for (int j = 0; j < BOARD_SIZE; ++j)
+		{
+			char ch = ( char ) mTable[ i ][ j ] -> mOwner;
+			fout.put ( ch );
+		}
+	}
+	return true;
+}
+
+bool Graph::loadGraph( const string& filename )
+{
+	ifstream	fin;
+	fin.open( filename , ios::binary | ios::in );
+	if ( fin.fail() )
+	{
+		cerr << "Cannot to read the file \"" << filename << "\"" << endl;
+		return false;
+	}
+	if( mTable[0][0] == nullptr )
+		buildGraph( );
+	char ch = 0;
+	for (int i = 0; i < BOARD_SIZE; ++i)
+	{	
+		for (int j = 0; j < BOARD_SIZE; ++j)
+		{
+			if ( ! fin.get ( ch ) )
+			{
+				cerr << "Some complication with reading the file \"" << filename << "\"" << endl;
+				return false;
+			}
+			mTable[ i ][ j ] -> mOwner = ( Owner )ch;			
+		}
+	}
+	return true;
+}
+
+
+int main( int argc, char const *argv[ ] )
+{
+	Graph g, h;
+	g.showData( );
+	if( ! g.saveGraph( "myboard.dat" ) )
+		cout << "save fail" << endl;
+	else if( ! h.loadGraph( "myboard.dat" ) )
+		cout << "load fail" << endl;
+	else
+		cout << "everything is OK" << endl;
+
 	return 0;
 }
